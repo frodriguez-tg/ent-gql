@@ -1,0 +1,36 @@
+scalar Time
+
+input UserCreateInput{
+    age: Int!
+    name: String
+}
+
+input CarCreateInput{
+    model: String!
+}
+
+input CarsToUserInput{
+    carIDs: [String!]!
+    userID: String!
+}
+
+input GroupCreateInput{
+    name: String!
+}
+
+input UsersToGroup{
+    userIDs: [String!]!
+    groupID: String!
+}
+
+type GenericResponse{
+    status: String!
+}
+
+type Mutation {
+    createUser(input: UserCreateInput!): User!
+    createCar(input: CarCreateInput!): Car!
+    addCarsToUser(input: CarsToUserInput!): GenericResponse!
+    createGroup(input: GroupCreateInput!): Group!
+    addUsersToGroup(input:UsersToGroup!): GenericResponse!
+}
