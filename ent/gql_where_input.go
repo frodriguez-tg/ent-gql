@@ -281,6 +281,14 @@ type GroupWhereInput struct {
 	// "users" edge predicates.
 	HasUsers     *bool             `json:"hasUsers,omitempty"`
 	HasUsersWith []*UserWhereInput `json:"hasUsersWith,omitempty"`
+
+	// "parent" edge predicates.
+	HasParent     *bool              `json:"hasParent,omitempty"`
+	HasParentWith []*GroupWhereInput `json:"hasParentWith,omitempty"`
+
+	// "children" edge predicates.
+	HasChildren     *bool              `json:"hasChildren,omitempty"`
+	HasChildrenWith []*GroupWhereInput `json:"hasChildrenWith,omitempty"`
 }
 
 // AddPredicates adds custom predicates to the where input to be used during the filtering phase.
@@ -435,6 +443,42 @@ func (i *GroupWhereInput) P() (predicate.Group, error) {
 			with = append(with, p)
 		}
 		predicates = append(predicates, group.HasUsersWith(with...))
+	}
+	if i.HasParent != nil {
+		p := group.HasParent()
+		if !*i.HasParent {
+			p = group.Not(p)
+		}
+		predicates = append(predicates, p)
+	}
+	if len(i.HasParentWith) > 0 {
+		with := make([]predicate.Group, 0, len(i.HasParentWith))
+		for _, w := range i.HasParentWith {
+			p, err := w.P()
+			if err != nil {
+				return nil, fmt.Errorf("%w: field 'HasParentWith'", err)
+			}
+			with = append(with, p)
+		}
+		predicates = append(predicates, group.HasParentWith(with...))
+	}
+	if i.HasChildren != nil {
+		p := group.HasChildren()
+		if !*i.HasChildren {
+			p = group.Not(p)
+		}
+		predicates = append(predicates, p)
+	}
+	if len(i.HasChildrenWith) > 0 {
+		with := make([]predicate.Group, 0, len(i.HasChildrenWith))
+		for _, w := range i.HasChildrenWith {
+			p, err := w.P()
+			if err != nil {
+				return nil, fmt.Errorf("%w: field 'HasChildrenWith'", err)
+			}
+			with = append(with, p)
+		}
+		predicates = append(predicates, group.HasChildrenWith(with...))
 	}
 	switch len(predicates) {
 	case 0:

@@ -19,20 +19,26 @@ type Group struct {
 	Name string `json:"name,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the GroupQuery when eager-loading is set.
-	Edges GroupEdges `json:"edges"`
+	Edges          GroupEdges `json:"edges"`
+	group_children *string
 }
 
 // GroupEdges holds the relations/edges for other nodes in the graph.
 type GroupEdges struct {
 	// Users holds the value of the users edge.
 	Users []*User `json:"users,omitempty"`
+	// Parent holds the value of the parent edge.
+	Parent *Group `json:"parent,omitempty"`
+	// Children holds the value of the children edge.
+	Children []*Group `json:"children,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
-	loadedTypes [1]bool
+	loadedTypes [3]bool
 	// totalCount holds the count of the edges above.
-	totalCount [1]map[string]int
+	totalCount [3]map[string]int
 
-	namedUsers map[string][]*User
+	namedUsers    map[string][]*User
+	namedChildren map[string][]*Group
 }
 
 // UsersOrErr returns the Users value or an error if the edge
@@ -44,12 +50,36 @@ func (e GroupEdges) UsersOrErr() ([]*User, error) {
 	return nil, &NotLoadedError{edge: "users"}
 }
 
+// ParentOrErr returns the Parent value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e GroupEdges) ParentOrErr() (*Group, error) {
+	if e.loadedTypes[1] {
+		if e.Parent == nil {
+			// Edge was loaded but was not found.
+			return nil, &NotFoundError{label: group.Label}
+		}
+		return e.Parent, nil
+	}
+	return nil, &NotLoadedError{edge: "parent"}
+}
+
+// ChildrenOrErr returns the Children value or an error if the edge
+// was not loaded in eager-loading.
+func (e GroupEdges) ChildrenOrErr() ([]*Group, error) {
+	if e.loadedTypes[2] {
+		return e.Children, nil
+	}
+	return nil, &NotLoadedError{edge: "children"}
+}
+
 // scanValues returns the types for scanning values from sql.Rows.
 func (*Group) scanValues(columns []string) ([]interface{}, error) {
 	values := make([]interface{}, len(columns))
 	for i := range columns {
 		switch columns[i] {
 		case group.FieldID, group.FieldName:
+			values[i] = new(sql.NullString)
+		case group.ForeignKeys[0]: // group_children
 			values[i] = new(sql.NullString)
 		default:
 			return nil, fmt.Errorf("unexpected column %q for type Group", columns[i])
@@ -78,6 +108,13 @@ func (gr *Group) assignValues(columns []string, values []interface{}) error {
 			} else if value.Valid {
 				gr.Name = value.String
 			}
+		case group.ForeignKeys[0]:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field group_children", values[i])
+			} else if value.Valid {
+				gr.group_children = new(string)
+				*gr.group_children = value.String
+			}
 		}
 	}
 	return nil
@@ -86,6 +123,16 @@ func (gr *Group) assignValues(columns []string, values []interface{}) error {
 // QueryUsers queries the "users" edge of the Group entity.
 func (gr *Group) QueryUsers() *UserQuery {
 	return (&GroupClient{config: gr.config}).QueryUsers(gr)
+}
+
+// QueryParent queries the "parent" edge of the Group entity.
+func (gr *Group) QueryParent() *GroupQuery {
+	return (&GroupClient{config: gr.config}).QueryParent(gr)
+}
+
+// QueryChildren queries the "children" edge of the Group entity.
+func (gr *Group) QueryChildren() *GroupQuery {
+	return (&GroupClient{config: gr.config}).QueryChildren(gr)
 }
 
 // Update returns a builder for updating this Group.
@@ -138,6 +185,30 @@ func (gr *Group) appendNamedUsers(name string, edges ...*User) {
 		gr.Edges.namedUsers[name] = []*User{}
 	} else {
 		gr.Edges.namedUsers[name] = append(gr.Edges.namedUsers[name], edges...)
+	}
+}
+
+// NamedChildren returns the Children named value or an error if the edge was not
+// loaded in eager-loading with this name.
+func (gr *Group) NamedChildren(name string) ([]*Group, error) {
+	if gr.Edges.namedChildren == nil {
+		return nil, &NotLoadedError{edge: name}
+	}
+	nodes, ok := gr.Edges.namedChildren[name]
+	if !ok {
+		return nil, &NotLoadedError{edge: name}
+	}
+	return nodes, nil
+}
+
+func (gr *Group) appendNamedChildren(name string, edges ...*Group) {
+	if gr.Edges.namedChildren == nil {
+		gr.Edges.namedChildren = make(map[string][]*Group)
+	}
+	if len(edges) == 0 {
+		gr.Edges.namedChildren[name] = []*Group{}
+	} else {
+		gr.Edges.namedChildren[name] = append(gr.Edges.namedChildren[name], edges...)
 	}
 }
 

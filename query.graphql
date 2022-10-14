@@ -75,6 +75,8 @@ type Group implements Node {
   id: ID!
   name: String!
   users: [User!]
+  parent: Group
+  children: [Group!]
 }
 """A connection to a list of items."""
 type GroupConnection {
@@ -126,6 +128,12 @@ input GroupWhereInput {
   """users edge predicates"""
   hasUsers: Boolean
   hasUsersWith: [UserWhereInput!]
+  """parent edge predicates"""
+  hasParent: Boolean
+  hasParentWith: [GroupWhereInput!]
+  """children edge predicates"""
+  hasChildren: Boolean
+  hasChildrenWith: [GroupWhereInput!]
 }
 """
 An object with an ID.

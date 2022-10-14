@@ -25,7 +25,6 @@ func (r *mutationResolver) CreateCar(ctx context.Context, input CarCreateInput) 
 
 // AddCarsToUser is the resolver for the addCarsToUser field.
 func (r *mutationResolver) AddCarsToUser(ctx context.Context, input CarsToUserInput) (*GenericResponse, error) {
-
 	if err := r.client.User.UpdateOneID(input.UserID).AddCarIDs(input.CarIDs...).Exec(ctx); err != nil {
 		return nil, err
 	}
@@ -41,7 +40,6 @@ func (r *mutationResolver) CreateGroup(ctx context.Context, input GroupCreateInp
 
 // AddUsersToGroup is the resolver for the addUsersToGroup field.
 func (r *mutationResolver) AddUsersToGroup(ctx context.Context, input UsersToGroup) (*GenericResponse, error) {
-
 	if err := r.client.Group.UpdateOneID(input.GroupID).AddUserIDs(input.UserIDs...).Exec(ctx); err != nil {
 		return nil, err
 	}

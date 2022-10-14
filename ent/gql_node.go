@@ -84,7 +84,7 @@ func (gr *Group) Node(ctx context.Context) (node *Node, err error) {
 		ID:     gr.ID,
 		Type:   "Group",
 		Fields: make([]*Field, 1),
-		Edges:  make([]*Edge, 1),
+		Edges:  make([]*Edge, 3),
 	}
 	var buf []byte
 	if buf, err = json.Marshal(gr.Name); err != nil {
@@ -102,6 +102,26 @@ func (gr *Group) Node(ctx context.Context) (node *Node, err error) {
 	err = gr.QueryUsers().
 		Select(user.FieldID).
 		Scan(ctx, &node.Edges[0].IDs)
+	if err != nil {
+		return nil, err
+	}
+	node.Edges[1] = &Edge{
+		Type: "Group",
+		Name: "parent",
+	}
+	err = gr.QueryParent().
+		Select(group.FieldID).
+		Scan(ctx, &node.Edges[1].IDs)
+	if err != nil {
+		return nil, err
+	}
+	node.Edges[2] = &Edge{
+		Type: "Group",
+		Name: "children",
+	}
+	err = gr.QueryChildren().
+		Select(group.FieldID).
+		Scan(ctx, &node.Edges[2].IDs)
 	if err != nil {
 		return nil, err
 	}

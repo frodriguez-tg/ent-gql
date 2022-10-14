@@ -97,6 +97,28 @@ func (gr *GroupQuery) collectField(ctx context.Context, op *graphql.OperationCon
 			gr.WithNamedUsers(alias, func(wq *UserQuery) {
 				*wq = *query
 			})
+		case "parent":
+			var (
+				alias = field.Alias
+				path  = append(path, alias)
+				query = &GroupQuery{config: gr.config}
+			)
+			if err := query.collectField(ctx, op, field, path, satisfies...); err != nil {
+				return err
+			}
+			gr.withParent = query
+		case "children":
+			var (
+				alias = field.Alias
+				path  = append(path, alias)
+				query = &GroupQuery{config: gr.config}
+			)
+			if err := query.collectField(ctx, op, field, path, satisfies...); err != nil {
+				return err
+			}
+			gr.WithNamedChildren(alias, func(wq *GroupQuery) {
+				*wq = *query
+			})
 		}
 	}
 	return nil

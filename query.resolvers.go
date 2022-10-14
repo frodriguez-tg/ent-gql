@@ -21,6 +21,7 @@ func (r *queryResolver) Nodes(ctx context.Context, ids []string) ([]ent.Noder, e
 
 // Cars is the resolver for the cars field.
 func (r *queryResolver) Cars(ctx context.Context, after *ent.Cursor, first *int, before *ent.Cursor, last *int, where *ent.CarWhereInput) (*ent.CarConnection, error) {
+	fmt.Println(where)
 	return r.client.Car.Query().Paginate(ctx, after, first, before, last, ent.WithCarFilter(where.Filter))
 }
 

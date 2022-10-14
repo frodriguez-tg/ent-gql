@@ -20,6 +20,22 @@ func (gr *Group) Users(ctx context.Context) ([]*User, error) {
 	return result, err
 }
 
+func (gr *Group) Parent(ctx context.Context) (*Group, error) {
+	result, err := gr.Edges.ParentOrErr()
+	if IsNotLoaded(err) {
+		result, err = gr.QueryParent().Only(ctx)
+	}
+	return result, MaskNotFound(err)
+}
+
+func (gr *Group) Children(ctx context.Context) ([]*Group, error) {
+	result, err := gr.Edges.ChildrenOrErr()
+	if IsNotLoaded(err) {
+		result, err = gr.QueryChildren().All(ctx)
+	}
+	return result, err
+}
+
 func (u *User) Cars(ctx context.Context) ([]*Car, error) {
 	result, err := u.Edges.CarsOrErr()
 	if IsNotLoaded(err) {

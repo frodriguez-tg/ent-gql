@@ -19,16 +19,20 @@ import (
 // GroupQuery is the builder for querying Group entities.
 type GroupQuery struct {
 	config
-	limit          *int
-	offset         *int
-	unique         *bool
-	order          []OrderFunc
-	fields         []string
-	predicates     []predicate.Group
-	withUsers      *UserQuery
-	modifiers      []func(*sql.Selector)
-	loadTotal      []func(context.Context, []*Group) error
-	withNamedUsers map[string]*UserQuery
+	limit             *int
+	offset            *int
+	unique            *bool
+	order             []OrderFunc
+	fields            []string
+	predicates        []predicate.Group
+	withUsers         *UserQuery
+	withParent        *GroupQuery
+	withChildren      *GroupQuery
+	withFKs           bool
+	modifiers         []func(*sql.Selector)
+	loadTotal         []func(context.Context, []*Group) error
+	withNamedUsers    map[string]*UserQuery
+	withNamedChildren map[string]*GroupQuery
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -80,6 +84,50 @@ func (gq *GroupQuery) QueryUsers() *UserQuery {
 			sqlgraph.From(group.Table, group.FieldID, selector),
 			sqlgraph.To(user.Table, user.FieldID),
 			sqlgraph.Edge(sqlgraph.M2M, false, group.UsersTable, group.UsersPrimaryKey...),
+		)
+		fromU = sqlgraph.SetNeighbors(gq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryParent chains the current query on the "parent" edge.
+func (gq *GroupQuery) QueryParent() *GroupQuery {
+	query := &GroupQuery{config: gq.config}
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := gq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := gq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(group.Table, group.FieldID, selector),
+			sqlgraph.To(group.Table, group.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, group.ParentTable, group.ParentColumn),
+		)
+		fromU = sqlgraph.SetNeighbors(gq.driver.Dialect(), step)
+		return fromU, nil
+	}
+	return query
+}
+
+// QueryChildren chains the current query on the "children" edge.
+func (gq *GroupQuery) QueryChildren() *GroupQuery {
+	query := &GroupQuery{config: gq.config}
+	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
+		if err := gq.prepareQuery(ctx); err != nil {
+			return nil, err
+		}
+		selector := gq.sqlQuery(ctx)
+		if err := selector.Err(); err != nil {
+			return nil, err
+		}
+		step := sqlgraph.NewStep(
+			sqlgraph.From(group.Table, group.FieldID, selector),
+			sqlgraph.To(group.Table, group.FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, group.ChildrenTable, group.ChildrenColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(gq.driver.Dialect(), step)
 		return fromU, nil
@@ -263,12 +311,14 @@ func (gq *GroupQuery) Clone() *GroupQuery {
 		return nil
 	}
 	return &GroupQuery{
-		config:     gq.config,
-		limit:      gq.limit,
-		offset:     gq.offset,
-		order:      append([]OrderFunc{}, gq.order...),
-		predicates: append([]predicate.Group{}, gq.predicates...),
-		withUsers:  gq.withUsers.Clone(),
+		config:       gq.config,
+		limit:        gq.limit,
+		offset:       gq.offset,
+		order:        append([]OrderFunc{}, gq.order...),
+		predicates:   append([]predicate.Group{}, gq.predicates...),
+		withUsers:    gq.withUsers.Clone(),
+		withParent:   gq.withParent.Clone(),
+		withChildren: gq.withChildren.Clone(),
 		// clone intermediate query.
 		sql:    gq.sql.Clone(),
 		path:   gq.path,
@@ -284,6 +334,28 @@ func (gq *GroupQuery) WithUsers(opts ...func(*UserQuery)) *GroupQuery {
 		opt(query)
 	}
 	gq.withUsers = query
+	return gq
+}
+
+// WithParent tells the query-builder to eager-load the nodes that are connected to
+// the "parent" edge. The optional arguments are used to configure the query builder of the edge.
+func (gq *GroupQuery) WithParent(opts ...func(*GroupQuery)) *GroupQuery {
+	query := &GroupQuery{config: gq.config}
+	for _, opt := range opts {
+		opt(query)
+	}
+	gq.withParent = query
+	return gq
+}
+
+// WithChildren tells the query-builder to eager-load the nodes that are connected to
+// the "children" edge. The optional arguments are used to configure the query builder of the edge.
+func (gq *GroupQuery) WithChildren(opts ...func(*GroupQuery)) *GroupQuery {
+	query := &GroupQuery{config: gq.config}
+	for _, opt := range opts {
+		opt(query)
+	}
+	gq.withChildren = query
 	return gq
 }
 
@@ -354,11 +426,20 @@ func (gq *GroupQuery) prepareQuery(ctx context.Context) error {
 func (gq *GroupQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Group, error) {
 	var (
 		nodes       = []*Group{}
+		withFKs     = gq.withFKs
 		_spec       = gq.querySpec()
-		loadedTypes = [1]bool{
+		loadedTypes = [3]bool{
 			gq.withUsers != nil,
+			gq.withParent != nil,
+			gq.withChildren != nil,
 		}
 	)
+	if gq.withParent != nil {
+		withFKs = true
+	}
+	if withFKs {
+		_spec.Node.Columns = append(_spec.Node.Columns, group.ForeignKeys...)
+	}
 	_spec.ScanValues = func(columns []string) ([]interface{}, error) {
 		return (*Group).scanValues(nil, columns)
 	}
@@ -387,10 +468,30 @@ func (gq *GroupQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Group,
 			return nil, err
 		}
 	}
+	if query := gq.withParent; query != nil {
+		if err := gq.loadParent(ctx, query, nodes, nil,
+			func(n *Group, e *Group) { n.Edges.Parent = e }); err != nil {
+			return nil, err
+		}
+	}
+	if query := gq.withChildren; query != nil {
+		if err := gq.loadChildren(ctx, query, nodes,
+			func(n *Group) { n.Edges.Children = []*Group{} },
+			func(n *Group, e *Group) { n.Edges.Children = append(n.Edges.Children, e) }); err != nil {
+			return nil, err
+		}
+	}
 	for name, query := range gq.withNamedUsers {
 		if err := gq.loadUsers(ctx, query, nodes,
 			func(n *Group) { n.appendNamedUsers(name) },
 			func(n *Group, e *User) { n.appendNamedUsers(name, e) }); err != nil {
+			return nil, err
+		}
+	}
+	for name, query := range gq.withNamedChildren {
+		if err := gq.loadChildren(ctx, query, nodes,
+			func(n *Group) { n.appendNamedChildren(name) },
+			func(n *Group, e *Group) { n.appendNamedChildren(name, e) }); err != nil {
 			return nil, err
 		}
 	}
@@ -457,6 +558,66 @@ func (gq *GroupQuery) loadUsers(ctx context.Context, query *UserQuery, nodes []*
 		for kn := range nodes {
 			assign(kn, n)
 		}
+	}
+	return nil
+}
+func (gq *GroupQuery) loadParent(ctx context.Context, query *GroupQuery, nodes []*Group, init func(*Group), assign func(*Group, *Group)) error {
+	ids := make([]string, 0, len(nodes))
+	nodeids := make(map[string][]*Group)
+	for i := range nodes {
+		if nodes[i].group_children == nil {
+			continue
+		}
+		fk := *nodes[i].group_children
+		if _, ok := nodeids[fk]; !ok {
+			ids = append(ids, fk)
+		}
+		nodeids[fk] = append(nodeids[fk], nodes[i])
+	}
+	query.Where(group.IDIn(ids...))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		nodes, ok := nodeids[n.ID]
+		if !ok {
+			return fmt.Errorf(`unexpected foreign-key "group_children" returned %v`, n.ID)
+		}
+		for i := range nodes {
+			assign(nodes[i], n)
+		}
+	}
+	return nil
+}
+func (gq *GroupQuery) loadChildren(ctx context.Context, query *GroupQuery, nodes []*Group, init func(*Group), assign func(*Group, *Group)) error {
+	fks := make([]driver.Value, 0, len(nodes))
+	nodeids := make(map[string]*Group)
+	for i := range nodes {
+		fks = append(fks, nodes[i].ID)
+		nodeids[nodes[i].ID] = nodes[i]
+		if init != nil {
+			init(nodes[i])
+		}
+	}
+	query.withFKs = true
+	query.Where(predicate.Group(func(s *sql.Selector) {
+		s.Where(sql.InValues(group.ChildrenColumn, fks...))
+	}))
+	neighbors, err := query.All(ctx)
+	if err != nil {
+		return err
+	}
+	for _, n := range neighbors {
+		fk := n.group_children
+		if fk == nil {
+			return fmt.Errorf(`foreign-key "group_children" is nil for node %v`, n.ID)
+		}
+		node, ok := nodeids[*fk]
+		if !ok {
+			return fmt.Errorf(`unexpected foreign-key "group_children" returned %v for node %v`, *fk, n.ID)
+		}
+		assign(node, n)
 	}
 	return nil
 }
@@ -572,6 +733,20 @@ func (gq *GroupQuery) WithNamedUsers(name string, opts ...func(*UserQuery)) *Gro
 		gq.withNamedUsers = make(map[string]*UserQuery)
 	}
 	gq.withNamedUsers[name] = query
+	return gq
+}
+
+// WithNamedChildren tells the query-builder to eager-load the nodes that are connected to the "children"
+// edge with the given name. The optional arguments are used to configure the query builder of the edge.
+func (gq *GroupQuery) WithNamedChildren(name string, opts ...func(*GroupQuery)) *GroupQuery {
+	query := &GroupQuery{config: gq.config}
+	for _, opt := range opts {
+		opt(query)
+	}
+	if gq.withNamedChildren == nil {
+		gq.withNamedChildren = make(map[string]*GroupQuery)
+	}
+	gq.withNamedChildren[name] = query
 	return gq
 }
 
