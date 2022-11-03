@@ -1030,6 +1030,7 @@ type UserMutation struct {
 	id            *string
 	age           *int
 	addage        *int
+	permissions   *[]string
 	name          *string
 	clearedFields map[string]struct{}
 	cars          map[string]struct{}
@@ -1203,6 +1204,55 @@ func (m *UserMutation) ResetAge() {
 	m.addage = nil
 }
 
+// SetPermissions sets the "permissions" field.
+func (m *UserMutation) SetPermissions(s []string) {
+	m.permissions = &s
+}
+
+// Permissions returns the value of the "permissions" field in the mutation.
+func (m *UserMutation) Permissions() (r []string, exists bool) {
+	v := m.permissions
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldPermissions returns the old "permissions" field's value of the User entity.
+// If the User object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *UserMutation) OldPermissions(ctx context.Context) (v []string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldPermissions is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldPermissions requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldPermissions: %w", err)
+	}
+	return oldValue.Permissions, nil
+}
+
+// ClearPermissions clears the value of the "permissions" field.
+func (m *UserMutation) ClearPermissions() {
+	m.permissions = nil
+	m.clearedFields[user.FieldPermissions] = struct{}{}
+}
+
+// PermissionsCleared returns if the "permissions" field was cleared in this mutation.
+func (m *UserMutation) PermissionsCleared() bool {
+	_, ok := m.clearedFields[user.FieldPermissions]
+	return ok
+}
+
+// ResetPermissions resets all changes to the "permissions" field.
+func (m *UserMutation) ResetPermissions() {
+	m.permissions = nil
+	delete(m.clearedFields, user.FieldPermissions)
+}
+
 // SetName sets the "name" field.
 func (m *UserMutation) SetName(s string) {
 	m.name = &s
@@ -1366,9 +1416,12 @@ func (m *UserMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *UserMutation) Fields() []string {
-	fields := make([]string, 0, 2)
+	fields := make([]string, 0, 3)
 	if m.age != nil {
 		fields = append(fields, user.FieldAge)
+	}
+	if m.permissions != nil {
+		fields = append(fields, user.FieldPermissions)
 	}
 	if m.name != nil {
 		fields = append(fields, user.FieldName)
@@ -1383,6 +1436,8 @@ func (m *UserMutation) Field(name string) (ent.Value, bool) {
 	switch name {
 	case user.FieldAge:
 		return m.Age()
+	case user.FieldPermissions:
+		return m.Permissions()
 	case user.FieldName:
 		return m.Name()
 	}
@@ -1396,6 +1451,8 @@ func (m *UserMutation) OldField(ctx context.Context, name string) (ent.Value, er
 	switch name {
 	case user.FieldAge:
 		return m.OldAge(ctx)
+	case user.FieldPermissions:
+		return m.OldPermissions(ctx)
 	case user.FieldName:
 		return m.OldName(ctx)
 	}
@@ -1413,6 +1470,13 @@ func (m *UserMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetAge(v)
+		return nil
+	case user.FieldPermissions:
+		v, ok := value.([]string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetPermissions(v)
 		return nil
 	case user.FieldName:
 		v, ok := value.(string)
@@ -1465,7 +1529,11 @@ func (m *UserMutation) AddField(name string, value ent.Value) error {
 // ClearedFields returns all nullable fields that were cleared during this
 // mutation.
 func (m *UserMutation) ClearedFields() []string {
-	return nil
+	var fields []string
+	if m.FieldCleared(user.FieldPermissions) {
+		fields = append(fields, user.FieldPermissions)
+	}
+	return fields
 }
 
 // FieldCleared returns a boolean indicating if a field with the given name was
@@ -1478,6 +1546,11 @@ func (m *UserMutation) FieldCleared(name string) bool {
 // ClearField clears the value of the field with the given name. It returns an
 // error if the field is not defined in the schema.
 func (m *UserMutation) ClearField(name string) error {
+	switch name {
+	case user.FieldPermissions:
+		m.ClearPermissions()
+		return nil
+	}
 	return fmt.Errorf("unknown User nullable field %s", name)
 }
 
@@ -1487,6 +1560,9 @@ func (m *UserMutation) ResetField(name string) error {
 	switch name {
 	case user.FieldAge:
 		m.ResetAge()
+		return nil
+	case user.FieldPermissions:
+		m.ResetPermissions()
 		return nil
 	case user.FieldName:
 		m.ResetName()

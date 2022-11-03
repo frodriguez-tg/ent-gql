@@ -1,0 +1,5 @@
+directive @hasPermissions(permissions: [String!]!) on OBJECT | FIELD_DEFINITION
+
+extend input UserWhereInput {
+    permissions: [String!]
+}

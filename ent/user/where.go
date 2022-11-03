@@ -158,6 +158,20 @@ func AgeLTE(v int) predicate.User {
 	})
 }
 
+// PermissionsIsNil applies the IsNil predicate on the "permissions" field.
+func PermissionsIsNil() predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		s.Where(sql.IsNull(s.C(FieldPermissions)))
+	})
+}
+
+// PermissionsNotNil applies the NotNil predicate on the "permissions" field.
+func PermissionsNotNil() predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		s.Where(sql.NotNull(s.C(FieldPermissions)))
+	})
+}
+
 // NameEQ applies the EQ predicate on the "name" field.
 func NameEQ(v string) predicate.User {
 	return predicate.User(func(s *sql.Selector) {

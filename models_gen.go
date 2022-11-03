@@ -3,28 +3,31 @@
 package main
 
 type CarCreateInput struct {
-	Model string `json:"model"`
+	Model string `json:"model,omitempty"`
 }
 
 type CarsToUserInput struct {
-	CarIDs []string `json:"carIDs"`
-	UserID string   `json:"userID"`
+	CarIDs []string `json:"carIDs,omitempty"`
+	UserID string   `json:"userID,omitempty"`
 }
 
 type GenericResponse struct {
-	Status string `json:"status"`
+	Status string `json:"status,omitempty"`
 }
 
 type GroupCreateInput struct {
-	Name string `json:"name"`
+	ID     string  `json:"ID,omitempty"`
+	Name   string  `json:"name,omitempty"`
+	Parent *string `json:"Parent,omitempty"`
 }
 
 type UserCreateInput struct {
-	Age  int     `json:"age"`
-	Name *string `json:"name"`
+	Age         int      `json:"age,omitempty"`
+	Name        *string  `json:"name,omitempty"`
+	Permissions []string `json:"permissions,omitempty"`
 }
 
 type UsersToGroup struct {
-	UserIDs []string `json:"userIDs"`
-	GroupID string   `json:"groupID"`
+	UserIDs []string `json:"userIDs,omitempty"`
+	GroupID string   `json:"groupID,omitempty"`
 }

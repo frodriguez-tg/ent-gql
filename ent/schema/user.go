@@ -19,6 +19,7 @@ func (User) Fields() []ent.Field {
 		field.String("id").Immutable().DefaultFunc(GenerateID("usr")),
 		field.Int("age").
 			Positive(),
+		field.Strings("permissions").StructTag(`pg:",array"`).Optional(),
 		field.String("name").
 			Default("unknown"),
 	}

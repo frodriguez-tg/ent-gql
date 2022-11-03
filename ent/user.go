@@ -3,6 +3,7 @@
 package ent
 
 import (
+	"encoding/json"
 	"fmt"
 	"freg/ent/user"
 	"strings"
@@ -12,11 +13,13 @@ import (
 
 // User is the model entity for the User schema.
 type User struct {
-	config `json:"-"`
+	config `json:"-" pg:"-"`
 	// ID of the ent.
 	ID string `json:"id,omitempty"`
 	// Age holds the value of the "age" field.
 	Age int `json:"age,omitempty"`
+	// Permissions holds the value of the "permissions" field.
+	Permissions []string `json:"permissions,omitempty" pg:",array"`
 	// Name holds the value of the "name" field.
 	Name string `json:"name,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
@@ -63,6 +66,8 @@ func (*User) scanValues(columns []string) ([]interface{}, error) {
 	values := make([]interface{}, len(columns))
 	for i := range columns {
 		switch columns[i] {
+		case user.FieldPermissions:
+			values[i] = new([]byte)
 		case user.FieldAge:
 			values[i] = new(sql.NullInt64)
 		case user.FieldID, user.FieldName:
@@ -93,6 +98,14 @@ func (u *User) assignValues(columns []string, values []interface{}) error {
 				return fmt.Errorf("unexpected type %T for field age", values[i])
 			} else if value.Valid {
 				u.Age = int(value.Int64)
+			}
+		case user.FieldPermissions:
+			if value, ok := values[i].(*[]byte); !ok {
+				return fmt.Errorf("unexpected type %T for field permissions", values[i])
+			} else if value != nil && len(*value) > 0 {
+				if err := json.Unmarshal(*value, &u.Permissions); err != nil {
+					return fmt.Errorf("unmarshal field permissions: %w", err)
+				}
 			}
 		case user.FieldName:
 			if value, ok := values[i].(*sql.NullString); !ok {
@@ -140,6 +153,9 @@ func (u *User) String() string {
 	builder.WriteString(fmt.Sprintf("id=%v, ", u.ID))
 	builder.WriteString("age=")
 	builder.WriteString(fmt.Sprintf("%v", u.Age))
+	builder.WriteString(", ")
+	builder.WriteString("permissions=")
+	builder.WriteString(fmt.Sprintf("%v", u.Permissions))
 	builder.WriteString(", ")
 	builder.WriteString("name=")
 	builder.WriteString(u.Name)

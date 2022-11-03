@@ -40,9 +40,11 @@ type Config struct {
 type ResolverRoot interface {
 	Mutation() MutationResolver
 	Query() QueryResolver
+	UserWhereInput() UserWhereInputResolver
 }
 
 type DirectiveRoot struct {
+	HasPermissions func(ctx context.Context, obj interface{}, next graphql.Resolver, permissions []string) (res interface{}, err error)
 }
 
 type ComplexityRoot struct {
@@ -111,11 +113,12 @@ type ComplexityRoot struct {
 	}
 
 	User struct {
-		Age    func(childComplexity int) int
-		Cars   func(childComplexity int) int
-		Groups func(childComplexity int) int
-		ID     func(childComplexity int) int
-		Name   func(childComplexity int) int
+		Age         func(childComplexity int) int
+		Cars        func(childComplexity int) int
+		Groups      func(childComplexity int) int
+		ID          func(childComplexity int) int
+		Name        func(childComplexity int) int
+		Permissions func(childComplexity int) int
 	}
 
 	UserConnection struct {
@@ -143,6 +146,10 @@ type QueryResolver interface {
 	Cars(ctx context.Context, after *ent.Cursor, first *int, before *ent.Cursor, last *int, where *ent.CarWhereInput) (*ent.CarConnection, error)
 	Groups(ctx context.Context, after *ent.Cursor, first *int, before *ent.Cursor, last *int, where *ent.GroupWhereInput) (*ent.GroupConnection, error)
 	Users(ctx context.Context, after *ent.Cursor, first *int, before *ent.Cursor, last *int, where *ent.UserWhereInput) (*ent.UserConnection, error)
+}
+
+type UserWhereInputResolver interface {
+	Permissions(ctx context.Context, obj *ent.UserWhereInput, data []string) error
 }
 
 type executableSchema struct {
@@ -483,6 +490,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.User.Name(childComplexity), true
 
+	case "User.permissions":
+		if e.complexity.User.Permissions == nil {
+			break
+		}
+
+		return e.complexity.User.Permissions(childComplexity), true
+
 	case "UserConnection.edges":
 		if e.complexity.UserConnection.Edges == nil {
 			break
@@ -593,7 +607,7 @@ func (ec *executionContext) introspectType(name string) (*introspection.Type, er
 	return introspection.WrapTypeFromDef(parsedSchema, parsedSchema.Types[name]), nil
 }
 
-//go:embed "mutation.graphql" "query.graphql"
+//go:embed "mutation.graphql" "query.graphql" "helper.graphql"
 var sourcesFS embed.FS
 
 func sourceData(filename string) string {
@@ -607,12 +621,28 @@ func sourceData(filename string) string {
 var sources = []*ast.Source{
 	{Name: "mutation.graphql", Input: sourceData("mutation.graphql"), BuiltIn: false},
 	{Name: "query.graphql", Input: sourceData("query.graphql"), BuiltIn: false},
+	{Name: "helper.graphql", Input: sourceData("helper.graphql"), BuiltIn: false},
 }
 var parsedSchema = gqlparser.MustLoadSchema(sources...)
 
 // endregion ************************** generated!.gotpl **************************
 
 // region    ***************************** args.gotpl *****************************
+
+func (ec *executionContext) dir_hasPermissions_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 []string
+	if tmp, ok := rawArgs["permissions"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("permissions"))
+		arg0, err = ec.unmarshalNString2ᚕstringᚄ(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["permissions"] = arg0
+	return args, nil
+}
 
 func (ec *executionContext) field_Mutation_addCarsToUser_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
@@ -1097,6 +1127,8 @@ func (ec *executionContext) fieldContext_Car_owner(ctx context.Context, field gr
 				return ec.fieldContext_User_id(ctx, field)
 			case "age":
 				return ec.fieldContext_User_age(ctx, field)
+			case "permissions":
+				return ec.fieldContext_User_permissions(ctx, field)
 			case "name":
 				return ec.fieldContext_User_name(ctx, field)
 			case "cars":
@@ -1522,6 +1554,8 @@ func (ec *executionContext) fieldContext_Group_users(ctx context.Context, field 
 				return ec.fieldContext_User_id(ctx, field)
 			case "age":
 				return ec.fieldContext_User_age(ctx, field)
+			case "permissions":
+				return ec.fieldContext_User_permissions(ctx, field)
 			case "name":
 				return ec.fieldContext_User_name(ctx, field)
 			case "cars":
@@ -1926,6 +1960,8 @@ func (ec *executionContext) fieldContext_Mutation_createUser(ctx context.Context
 				return ec.fieldContext_User_id(ctx, field)
 			case "age":
 				return ec.fieldContext_User_age(ctx, field)
+			case "permissions":
+				return ec.fieldContext_User_permissions(ctx, field)
 			case "name":
 				return ec.fieldContext_User_name(ctx, field)
 			case "cars":
@@ -2883,6 +2919,47 @@ func (ec *executionContext) fieldContext_User_age(ctx context.Context, field gra
 	return fc, nil
 }
 
+func (ec *executionContext) _User_permissions(ctx context.Context, field graphql.CollectedField, obj *ent.User) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_User_permissions(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Permissions, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.([]string)
+	fc.Result = res
+	return ec.marshalOString2ᚕstringᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_User_permissions(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "User",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _User_name(ctx context.Context, field graphql.CollectedField, obj *ent.User) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_User_name(ctx, field)
 	if err != nil {
@@ -3216,6 +3293,8 @@ func (ec *executionContext) fieldContext_UserEdge_node(ctx context.Context, fiel
 				return ec.fieldContext_User_id(ctx, field)
 			case "age":
 				return ec.fieldContext_User_age(ctx, field)
+			case "permissions":
+				return ec.fieldContext_User_permissions(ctx, field)
 			case "name":
 				return ec.fieldContext_User_name(ctx, field)
 			case "cars":
@@ -5409,18 +5488,34 @@ func (ec *executionContext) unmarshalInputGroupCreateInput(ctx context.Context, 
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"name"}
+	fieldsInOrder := [...]string{"ID", "name", "Parent"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
 			continue
 		}
 		switch k {
+		case "ID":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("ID"))
+			it.ID, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
 		case "name":
 			var err error
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
 			it.Name, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "Parent":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("Parent"))
+			it.Parent, err = ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -5697,7 +5792,7 @@ func (ec *executionContext) unmarshalInputUserCreateInput(ctx context.Context, o
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"age", "name"}
+	fieldsInOrder := [...]string{"age", "name", "permissions"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -5720,6 +5815,14 @@ func (ec *executionContext) unmarshalInputUserCreateInput(ctx context.Context, o
 			if err != nil {
 				return it, err
 			}
+		case "permissions":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("permissions"))
+			it.Permissions, err = ec.unmarshalNString2ᚕstringᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
 		}
 	}
 
@@ -5733,7 +5836,7 @@ func (ec *executionContext) unmarshalInputUserWhereInput(ctx context.Context, ob
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"not", "and", "or", "id", "idNEQ", "idIn", "idNotIn", "idGT", "idGTE", "idLT", "idLTE", "age", "ageNEQ", "ageIn", "ageNotIn", "ageGT", "ageGTE", "ageLT", "ageLTE", "name", "nameNEQ", "nameIn", "nameNotIn", "nameGT", "nameGTE", "nameLT", "nameLTE", "nameContains", "nameHasPrefix", "nameHasSuffix", "nameEqualFold", "nameContainsFold", "hasCars", "hasCarsWith", "hasGroups", "hasGroupsWith"}
+	fieldsInOrder := [...]string{"not", "and", "or", "id", "idNEQ", "idIn", "idNotIn", "idGT", "idGTE", "idLT", "idLTE", "age", "ageNEQ", "ageIn", "ageNotIn", "ageGT", "ageGTE", "ageLT", "ageLTE", "name", "nameNEQ", "nameIn", "nameNotIn", "nameGT", "nameGTE", "nameLT", "nameLTE", "nameContains", "nameHasPrefix", "nameHasSuffix", "nameEqualFold", "nameContainsFold", "hasCars", "hasCarsWith", "hasGroups", "hasGroupsWith", "permissions"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -6026,6 +6129,17 @@ func (ec *executionContext) unmarshalInputUserWhereInput(ctx context.Context, ob
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("hasGroupsWith"))
 			it.HasGroupsWith, err = ec.unmarshalOGroupWhereInput2ᚕᚖfregᚋentᚐGroupWhereInputᚄ(ctx, v)
 			if err != nil {
+				return it, err
+			}
+		case "permissions":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("permissions"))
+			data, err := ec.unmarshalOString2ᚕstringᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			if err = ec.resolvers.UserWhereInput().Permissions(ctx, &it, data); err != nil {
 				return it, err
 			}
 		}
@@ -6713,6 +6827,10 @@ func (ec *executionContext) _User(ctx context.Context, sel ast.SelectionSet, obj
 			if out.Values[i] == graphql.Null {
 				atomic.AddUint32(&invalids, 1)
 			}
+		case "permissions":
+
+			out.Values[i] = ec._User_permissions(ctx, field, obj)
+
 		case "name":
 
 			out.Values[i] = ec._User_name(ctx, field, obj)

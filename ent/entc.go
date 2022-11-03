@@ -24,7 +24,7 @@ func main() {
 		// Generate the filters to a separate schema
 		// file and load it in the gqlgen.yml config.
 		entgql.WithSchemaPath("./query.graphql"),
-		entgql.WithWhereFilters(true),
+		entgql.WithWhereInputs(true),
 	)
 	if err != nil {
 		log.Fatalf("creating entgql extension: %v", err)

@@ -2,6 +2,7 @@
 schema:
   - mutation.graphql
   - query.graphql
+  - helper.graphql
 
 # resolver reports where the resolver implementations go.
 resolver:

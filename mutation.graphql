@@ -3,6 +3,7 @@ scalar Time
 input UserCreateInput{
     age: Int!
     name: String
+    permissions: [String!]!
 }
 
 input CarCreateInput{
@@ -15,7 +16,9 @@ input CarsToUserInput{
 }
 
 input GroupCreateInput{
+    ID: String!
     name: String!
+    Parent: String
 }
 
 input UsersToGroup{

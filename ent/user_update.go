@@ -42,6 +42,18 @@ func (uu *UserUpdate) AddAge(i int) *UserUpdate {
 	return uu
 }
 
+// SetPermissions sets the "permissions" field.
+func (uu *UserUpdate) SetPermissions(s []string) *UserUpdate {
+	uu.mutation.SetPermissions(s)
+	return uu
+}
+
+// ClearPermissions clears the value of the "permissions" field.
+func (uu *UserUpdate) ClearPermissions() *UserUpdate {
+	uu.mutation.ClearPermissions()
+	return uu
+}
+
 // SetName sets the "name" field.
 func (uu *UserUpdate) SetName(s string) *UserUpdate {
 	uu.mutation.SetName(s)
@@ -235,6 +247,19 @@ func (uu *UserUpdate) sqlSave(ctx context.Context) (n int, err error) {
 			Column: user.FieldAge,
 		})
 	}
+	if value, ok := uu.mutation.Permissions(); ok {
+		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
+			Type:   field.TypeJSON,
+			Value:  value,
+			Column: user.FieldPermissions,
+		})
+	}
+	if uu.mutation.PermissionsCleared() {
+		_spec.Fields.Clear = append(_spec.Fields.Clear, &sqlgraph.FieldSpec{
+			Type:   field.TypeJSON,
+			Column: user.FieldPermissions,
+		})
+	}
 	if value, ok := uu.mutation.Name(); ok {
 		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
 			Type:   field.TypeString,
@@ -379,6 +404,18 @@ func (uuo *UserUpdateOne) SetAge(i int) *UserUpdateOne {
 // AddAge adds i to the "age" field.
 func (uuo *UserUpdateOne) AddAge(i int) *UserUpdateOne {
 	uuo.mutation.AddAge(i)
+	return uuo
+}
+
+// SetPermissions sets the "permissions" field.
+func (uuo *UserUpdateOne) SetPermissions(s []string) *UserUpdateOne {
+	uuo.mutation.SetPermissions(s)
+	return uuo
+}
+
+// ClearPermissions clears the value of the "permissions" field.
+func (uuo *UserUpdateOne) ClearPermissions() *UserUpdateOne {
+	uuo.mutation.ClearPermissions()
 	return uuo
 }
 
@@ -603,6 +640,19 @@ func (uuo *UserUpdateOne) sqlSave(ctx context.Context) (_node *User, err error) 
 			Type:   field.TypeInt,
 			Value:  value,
 			Column: user.FieldAge,
+		})
+	}
+	if value, ok := uuo.mutation.Permissions(); ok {
+		_spec.Fields.Set = append(_spec.Fields.Set, &sqlgraph.FieldSpec{
+			Type:   field.TypeJSON,
+			Value:  value,
+			Column: user.FieldPermissions,
+		})
+	}
+	if uuo.mutation.PermissionsCleared() {
+		_spec.Fields.Clear = append(_spec.Fields.Clear, &sqlgraph.FieldSpec{
+			Type:   field.TypeJSON,
+			Column: user.FieldPermissions,
 		})
 	}
 	if value, ok := uuo.mutation.Name(); ok {

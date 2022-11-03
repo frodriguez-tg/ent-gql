@@ -9,6 +9,8 @@ const (
 	FieldID = "id"
 	// FieldAge holds the string denoting the age field in the database.
 	FieldAge = "age"
+	// FieldPermissions holds the string denoting the permissions field in the database.
+	FieldPermissions = "permissions"
 	// FieldName holds the string denoting the name field in the database.
 	FieldName = "name"
 	// EdgeCars holds the string denoting the cars edge name in mutations.
@@ -35,6 +37,7 @@ const (
 var Columns = []string{
 	FieldID,
 	FieldAge,
+	FieldPermissions,
 	FieldName,
 }
 

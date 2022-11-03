@@ -27,6 +27,12 @@ func (uc *UserCreate) SetAge(i int) *UserCreate {
 	return uc
 }
 
+// SetPermissions sets the "permissions" field.
+func (uc *UserCreate) SetPermissions(s []string) *UserCreate {
+	uc.mutation.SetPermissions(s)
+	return uc
+}
+
 // SetName sets the "name" field.
 func (uc *UserCreate) SetName(s string) *UserCreate {
 	uc.mutation.SetName(s)
@@ -228,6 +234,14 @@ func (uc *UserCreate) createSpec() (*User, *sqlgraph.CreateSpec) {
 			Column: user.FieldAge,
 		})
 		_node.Age = value
+	}
+	if value, ok := uc.mutation.Permissions(); ok {
+		_spec.Fields = append(_spec.Fields, &sqlgraph.FieldSpec{
+			Type:   field.TypeJSON,
+			Value:  value,
+			Column: user.FieldPermissions,
+		})
+		_node.Permissions = value
 	}
 	if value, ok := uc.mutation.Name(); ok {
 		_spec.Fields = append(_spec.Fields, &sqlgraph.FieldSpec{

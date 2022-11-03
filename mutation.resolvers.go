@@ -13,6 +13,7 @@ func (r *mutationResolver) CreateUser(ctx context.Context, input UserCreateInput
 	return r.client.User.Create().
 		SetAge(input.Age).
 		SetNillableName(input.Name).
+		SetPermissions(input.Permissions).
 		Save(ctx)
 }
 
@@ -34,6 +35,8 @@ func (r *mutationResolver) AddCarsToUser(ctx context.Context, input CarsToUserIn
 // CreateGroup is the resolver for the createGroup field.
 func (r *mutationResolver) CreateGroup(ctx context.Context, input GroupCreateInput) (*ent.Group, error) {
 	return r.client.Group.Create().
+		SetID(input.ID).
+		SetNillableParentID(input.Parent).
 		SetName(input.Name).
 		Save(ctx)
 }

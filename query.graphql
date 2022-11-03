@@ -227,6 +227,7 @@ type Query {
 type User implements Node {
   id: ID!
   age: Int!
+  permissions: [String!]
   name: String!
   cars: [Car!]
   groups: [Group!]
