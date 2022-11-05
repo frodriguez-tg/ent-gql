@@ -1,7 +1,7 @@
 package main
 
 import (
-	"freg/ent"
+	"freg/graph"
 
 	"github.com/99designs/gqlgen/graphql"
 )
@@ -12,11 +12,11 @@ import (
 
 // Resolver is the resolver root.
 type Resolver struct {
-	client *ent.Client
+	client *graph.Client
 }
 
 // NewSchema creates a graphql executable schema.
-func NewSchema(client *ent.Client) graphql.ExecutableSchema {
+func NewSchema(client *graph.Client) graphql.ExecutableSchema {
 	return NewExecutableSchema(Config{
 		Resolvers: &Resolver{client},
 	})

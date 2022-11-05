@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"log"
 
-	"freg/ent"
+	"freg/graph"
 
 	"entgo.io/contrib/entgql"
 	"entgo.io/ent/dialect/sql/schema"
@@ -21,9 +21,9 @@ func main() {
 	e := echo.New()
 	e.HideBanner = true
 
-	entOptions := []ent.Option{ent.Debug()}
+	entOptions := []graph.Option{graph.Debug()}
 
-	client, err := ent.Open("postgres", "postgresql://localhost:5432/testent?user=postgres&password=12345&sslmode=disable", entOptions...)
+	client, err := graph.Open("postgres", "postgresql://localhost:5432/testent?user=postgres&password=12345&sslmode=disable", entOptions...)
 	if err != nil {
 		log.Fatalf("failed to connect to db: %v", err)
 	}

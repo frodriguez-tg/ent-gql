@@ -5,15 +5,15 @@ package main
 
 import (
 	"context"
-	"freg/ent"
-	"freg/ent/user"
+	"freg/graph"
+	"freg/graph/user"
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqljson"
 )
 
 // Permissions is the resolver for the permissions field.
-func (r *userWhereInputResolver) Permissions(ctx context.Context, obj *ent.UserWhereInput, data []string) error {
+func (r *userWhereInputResolver) Permissions(ctx context.Context, obj *graph.UserWhereInput, data []string) error {
 	if len(data) == 0 {
 		return nil
 	}

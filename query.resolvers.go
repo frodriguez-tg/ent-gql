@@ -6,27 +6,27 @@ package main
 import (
 	"context"
 	"fmt"
-	"freg/ent"
+	"freg/graph"
 )
 
 // Node is the resolver for the node field.
-func (r *queryResolver) Node(ctx context.Context, id string) (ent.Noder, error) {
+func (r *queryResolver) Node(ctx context.Context, id string) (graph.Noder, error) {
 	panic(fmt.Errorf("not implemented: Node - node"))
 }
 
 // Nodes is the resolver for the nodes field.
-func (r *queryResolver) Nodes(ctx context.Context, ids []string) ([]ent.Noder, error) {
+func (r *queryResolver) Nodes(ctx context.Context, ids []string) ([]graph.Noder, error) {
 	panic(fmt.Errorf("not implemented: Nodes - nodes"))
 }
 
 // Cars is the resolver for the cars field.
-func (r *queryResolver) Cars(ctx context.Context, after *ent.Cursor, first *int, before *ent.Cursor, last *int, where *ent.CarWhereInput) (*ent.CarConnection, error) {
+func (r *queryResolver) Cars(ctx context.Context, after *graph.Cursor, first *int, before *graph.Cursor, last *int, where *graph.CarWhereInput) (*graph.CarConnection, error) {
 	fmt.Println(where)
-	return r.client.Car.Query().Paginate(ctx, after, first, before, last, ent.WithCarFilter(where.Filter))
+	return r.client.Car.Query().Paginate(ctx, after, first, before, last, graph.WithCarFilter(where.Filter))
 }
 
 // Groups is the resolver for the groups field.
-func (r *queryResolver) Groups(ctx context.Context, after *ent.Cursor, first *int, before *ent.Cursor, last *int, where *ent.GroupWhereInput) (*ent.GroupConnection, error) {
+func (r *queryResolver) Groups(ctx context.Context, after *graph.Cursor, first *int, before *graph.Cursor, last *int, where *graph.GroupWhereInput) (*graph.GroupConnection, error) {
 	tx, err := r.client.Tx(ctx)
 	if err != nil {
 		return nil, err
@@ -39,12 +39,12 @@ func (r *queryResolver) Groups(ctx context.Context, after *ent.Cursor, first *in
 
 	fmt.Println(d)
 	tx.Commit()
-	return r.client.Group.Query().Paginate(ctx, after, first, before, last, ent.WithGroupFilter(where.Filter))
+	return r.client.Group.Query().Paginate(ctx, after, first, before, last, graph.WithGroupFilter(where.Filter))
 }
 
 // Users is the resolver for the users field.
-func (r *queryResolver) Users(ctx context.Context, after *ent.Cursor, first *int, before *ent.Cursor, last *int, where *ent.UserWhereInput) (*ent.UserConnection, error) {
-	return r.client.User.Query().Paginate(ctx, after, first, before, last, ent.WithUserFilter(where.Filter))
+func (r *queryResolver) Users(ctx context.Context, after *graph.Cursor, first *int, before *graph.Cursor, last *int, where *graph.UserWhereInput) (*graph.UserConnection, error) {
+	return r.client.User.Query().Paginate(ctx, after, first, before, last, graph.WithUserFilter(where.Filter))
 }
 
 // Query returns QueryResolver implementation.
@@ -62,7 +62,7 @@ type userWhereInputResolver struct{ *Resolver }
 //   - When renaming or deleting a resolver the old code will be put in here. You can safely delete
 //     it when you're done.
 //   - You have helper methods in this file. Move them out to keep these resolver files clean.
-func getAllChildren(ctx context.Context, tx *ent.Tx, id string) ([]string, error) {
+func getAllChildren(ctx context.Context, tx *graph.Tx, id string) ([]string, error) {
 	g, err := tx.Group.Get(ctx, id)
 	if err != nil {
 		return nil, err

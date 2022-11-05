@@ -5,11 +5,11 @@ package main
 
 import (
 	"context"
-	"freg/ent"
+	"freg/graph"
 )
 
 // CreateUser is the resolver for the createUser field.
-func (r *mutationResolver) CreateUser(ctx context.Context, input UserCreateInput) (*ent.User, error) {
+func (r *mutationResolver) CreateUser(ctx context.Context, input UserCreateInput) (*graph.User, error) {
 	return r.client.User.Create().
 		SetAge(input.Age).
 		SetNillableName(input.Name).
@@ -18,7 +18,7 @@ func (r *mutationResolver) CreateUser(ctx context.Context, input UserCreateInput
 }
 
 // CreateCar is the resolver for the createCar field.
-func (r *mutationResolver) CreateCar(ctx context.Context, input CarCreateInput) (*ent.Car, error) {
+func (r *mutationResolver) CreateCar(ctx context.Context, input CarCreateInput) (*graph.Car, error) {
 	return r.client.Car.Create().
 		SetModel(input.Model).
 		Save(ctx)
@@ -33,7 +33,7 @@ func (r *mutationResolver) AddCarsToUser(ctx context.Context, input CarsToUserIn
 }
 
 // CreateGroup is the resolver for the createGroup field.
-func (r *mutationResolver) CreateGroup(ctx context.Context, input GroupCreateInput) (*ent.Group, error) {
+func (r *mutationResolver) CreateGroup(ctx context.Context, input GroupCreateInput) (*graph.Group, error) {
 	return r.client.Group.Create().
 		SetID(input.ID).
 		SetNillableParentID(input.Parent).

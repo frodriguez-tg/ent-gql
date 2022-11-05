@@ -30,9 +30,13 @@ func main() {
 		log.Fatalf("creating entgql extension: %v", err)
 	}
 	opts := []entc.Option{entc.Extensions(ex)}
-	if err := entc.Generate("./ent/schema", &gen.Config{
-		IDType: &field.TypeInfo{Type: field.TypeString},
-	}, opts...); err != nil {
+	if err := entc.Generate(
+		"./ent/schema",
+		&gen.Config{
+			IDType:  &field.TypeInfo{Type: field.TypeString},
+			Target:  "./graph",
+			Package: "freg/graph",
+		}, opts...); err != nil {
 		log.Fatalf("running ent codegen: %v", err)
 	}
 }

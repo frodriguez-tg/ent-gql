@@ -19,7 +19,7 @@ omit_slice_element_pointers: true
 # autobind tells gqngen to search for any type names in the GraphQL schema in the
 # provided package. If they match it will use them, otherwise it will generate new.
 autobind:
-  - freg/ent
+  - freg/graph
 
 # This section declares type mapping between the GraphQL and Go type systems.
 models:

@@ -1,3 +1,6 @@
 .idea/
 vendor/
-
+graph/
+generated.go
+models_gen.go
+freg
